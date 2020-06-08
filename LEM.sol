@@ -1,5 +1,5 @@
 pragma solidity ^0.4.22;
-contract VDF{
+contract LEM{
     
     struct Character{
         Role role;
