@@ -1,17 +1,15 @@
-pragma solidity ^0.4.22;
+pragma solidity >=0.4.22 <0.7.0;
+
 contract LEM{
-    
-    struct Character{
-        Role role;
-        string description;
+    enum Role{
+        pi,//police investigator
+        node,//blockchain node 
+        pd,//police department
+        sa,//crime scene analyst
+        jr,//juror
+        jg//juror
     }
-
-    mapping(address=>Character) public characters;
-    mapping(bytes32=>Investigatio) public investigatioPool;
-    mapping(bytes32=>Investigation) public investigatioPool;
-    string[] public broadcastPool;
-
-    struct Investigatio{
+    
     struct Investigation{
         string des;//meatadata
         address sender;
@@ -23,223 +21,178 @@ contract LEM{
         mapping(bytes32=>bytes32) kv;
     }
 
-    struct Param{
-
+    
+    struct CollectionRequest{
+        string pi;
+        uint256 timestamp;
+        bytes32 data_hash;
+        string download_link;
     }
-
-    enum State{
-            WarrantRequest,
-            InvestigationInitiate,
-@@ -42,15 +37,9 @@ contract LEM{
-        a//Authority
+    
+    address initializer;
+    mapping(address=>Role) public roles;
+    mapping(bytes32=>CollectionRequest) public CollectionRequestPool;
+    mapping(bytes32=>Investigation) public investigatioPool;
+    string[] public broadcastPool;
+    
+        
+    enum CurrentState{
+        Collection,
+        Upload,
+        Reject_Upload,
+        Store,
+        Access,
+        Vote,
+        Complete
     }
-
-    uint32 t;
-
-    address public chairperson;
-
+    CurrentState currentstate;
+    
     constructor() public{
-        chairperson=msg.sender;
-        t=10;
+        initializer=msg.sender;
     }
-
-    function setCharacter(address a,Role role) public{
+    
+    function setChars(address[] memory pil,address[] memory nodel,address[] memory pdl,address[] memory sal,address[] memory jrl,address[] memory jgl) public{
         require(
-            msg.sender==chairperson,
-@@ -59,118 +48,98 @@ contract LEM{
-        characters[a].role=role;
-    }
-
-    function requestWarrant(string des,bytes32 hashreq,string timestamp) public{
-        require(
-            characters[msg.sender].role==Role.l,
-            "Invalid Character"
+            msg.sender==initializer,
+            "Illegal"
             );
-        Param memory _param=Param(0,"0","0","0","0","0");
-        Warrant memory _warrant=Warrant(des,msg.sender,now,State.WarrantRequest,_param);//init
-        warrentPool[hashreq]=_warrant;
-        broadcastPool.push("An investigation request has been created.");
-    }//TX2 by l
-
-    function handleWarrant(bool permit,bytes32 hashreq,string keyPara) public{
-    function register(string au,string aci,string date, string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
-        require(
-            characters[msg.sender].role==Role.c,
-            "Invalid Character"
-            );
-        if(permit){
-            //parse keyPara
-            warrentPool[hashreq].param.keyPara=keyPara;
-            warrentPool[hashreq].state=State.WarrantAuthorization;
-            broadcastPool.push("An investigation has been permitted by the court.");
+        for(uint pii = 0; pii <pil.length ; pii++) {
+            roles[pil[pii]]=Role.pi;
         }
-        else{
-            warrentPool[hashreq].state=State.Completed;
-            broadcastPool.push("An investigation has been rejected by the court.");
+        for(uint nodei = 0; nodei <nodel.length ; nodei++) {
+            roles[nodel[nodei]]=Role.node;
         }
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        broadcastPool.push("register");
-    }//tx1
-    //On receiving tx1
-    function or1(){
-
-    }
-
-    function storeKeyBlindPara(bytes32 hashreq,string keyBlindPara) public{
-    function grant(string au,string aci,string date, string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
-        require(
-            characters[msg.sender].role==Role.l,
-            "Invalid Character"
-            );
-        warrentPool[hashreq].param.keyBlindPara=keyBlindPara;
-    }
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        broadcastPool.push("grant");
-    }//tx2
-
-    function retrive(bytes32 hashreq,string sharesPara) public{
-        require(
-            characters[msg.sender].role==Role.a,
-            "Invalid Character"
-            );
-        warrentPool[hashreq].param.sharesNum+=1;
-        warrentPool[hashreq].param.sharesPara=sharesPara;
-        if(warrentPool[hashreq].param.sharesNum>=t+1){
-            warrentPool[hashreq].state=State.DataCollection;
-            broadcastPool.push("The investigator collects enough shares.");
+        for(uint pdi = 0; pdi <pdl.length ; pdi++) {
+            roles[pdl[pdi]]=Role.pd;
         }
-        else{
-            broadcastPool.push("The Aj submits the decryption key shares.");
-        }
-    //On receiving tx2
-    function or2(){
-
+        for(uint sai = 0; sai <sal.length ; sai++) {
+            roles[sal[sai]]=Role.sa;
+       }
+       for(uint jri = 0; jri <jrl.length ; jri++) {
+            roles[jrl[jri]]=Role.jr;
+       }
+       for(uint jgi = 0; jgi <jgl.length ; jgi++) {
+            roles[jgl[jgi]]=Role.jg;
+       }
     }
-
-    function collect(bytes32 hashreq,string dataDigest) public{
-        require(
-            characters[msg.sender].role==Role.l,
-            "Invalid Character"
-            );
-    function upload(string pii,string pi,string ci,string md,string hash1,string hash2,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
-        require(
-            warrentPool[hashreq].param.sharesNum>=t+1,
-            "Poor sharesNum"
-            );
-        warrentPool[hashreq].param.dataDigest=dataDigest;
-        warrentPool[hashreq].state=State.DataAnalysis;
-        broadcastPool.push("The investigator has collected the forensics data.");
-    }
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        broadcastPool.push("upload");
-    }//tx3
-
-    function report(bytes32 hashreq,string hreport) public{
-        require(
-            characters[msg.sender].role==Role.l,
-            "Invalid Character"
-            );
-        require(
-            warrentPool[hashreq].state==State.DataAnalysis,
-            "Incorrect state"
-            );
-        warrentPool[hashreq].param.report=hreport;
-        warrentPool[hashreq].state=State.ForensicsReport;
-        broadcastPool.push("The investigator starts to examine the forensics data.");
-    //On receiving tx3
-    function or3(){
-
-    }
-
-    function complete(bytes32 hashreq,string) public{//from l and c
-        require(
-            characters[msg.sender].role==Role.l,
-            "Invalid Character"
-            );
-    function access(string pij,string pi,string md,string pi2,string hash,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public returns(uint256){
-        require(
-            warrentPool[hashreq].state==State.ForensicsReport,
-            "Incorrect state"
-            );
-
-        //verify mutilSignature
-        warrentPool[hashreq].state=State.Completed;
-        broadcastPool.push("The investigation has been accomplished");
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        broadcastPool.push("access");
-    }//tx4
-
-    //On receiving tx4
-    function or4(){
-
-    }
-    function permit(string au, string pij,string date , string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s){
+    
+    
+    function orRequest(string memory pi,uint256 ts,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
-        broadcastPool.push("permit");
-    }//tx5
-
-    function getBroadcast(uint32 index) public returns(string){
-        return broadcastPool[index];
-    //On receiving tx5
-    function or5(){
-
+        require(
+            roles[msg.sender]==Role.pi,
+            "Illegal"
+        );
+        currentstate=CurrentState.Collection;
+        bytes32 hpi=keccak256(abi.encodePacked(pi,ts));
+        CollectionRequest memory cr=CollectionRequest(pi,ts,"","");
+        CollectionRequestPool[hpi]=cr;
+        broadcastPool.push("A collection request has been created.");
     }
-    function analyze(string au, string pij,string date , string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s){
+    
+    function orUpload(string memory pi,string memory R_omega,bytes32 hash_c_omega,uint256 tspi,string memory rho,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
-        broadcastPool.push("analyze");
-    }//tx6
-
-    function hashCompareInternal(string a, string b) internal returns (bool) {
-        return keccak256(a) == keccak256(b);
-    //On receiving tx6
-    function or6(){
-
+        require(
+            roles[msg.sender]==Role.pi,
+            "Illegal"
+        );
+        currentstate=CurrentState.Upload;
+        bytes32 hpi=keccak256(abi.encodePacked(pi,tspi));
+        CollectionRequest memory cr=CollectionRequest(pi,tspi,hash_c_omega,"");
+        CollectionRequestPool[hpi]=cr;
+        broadcastPool.push("New evidence have been collected by a police investigator.");
+        
     }
-    function report(string pij,string hash,string date,string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s){
+    
+    function orRejectUpload(bytes32 hash_index,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{//called by the node
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
-        broadcastPool.push("report");
-    }//tx7
-
-    function strConcat(string _a, string _b) internal returns (string){
-        bytes memory _ba = bytes(_a);
-        bytes memory _bb = bytes(_b);
-        string memory ret = new string(_ba.length + _bb.length);
-        bytes memory bret = bytes(ret);
-        uint k = 0;
-        for (uint i = 0; i < _ba.length; i++)bret[k++] = _ba[i];
-        for (i = 0; i < _bb.length; i++) bret[k++] = _bb[i];
-        return string(ret);
-
-    //On receiving tx7
-    function or7(){
-
+        require(
+            roles[msg.sender]==Role.node,
+            "Illegal"
+        );
+        currentstate=CurrentState.Reject_Upload;
+        delete CollectionRequestPool[hash_index];
+        broadcastPool.push("The upload has been rejected by a blockchain node.");
     }
-    function close(string pij,string md,string date,string ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s){
+    
+    function orStore(bytes32 hash_index,bytes32 hash_c_omega,uint256 tspd,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
-        broadcastPool.push("close");
-    }//tx8
-    //On receiving tx8
-    function or8(){
-
+        require(
+            roles[msg.sender]==Role.pd,
+            "Illegal"
+        );
+        currentstate=CurrentState.Store;
+        CollectionRequestPool[hash_index].download_link=byte32UintToString(hash_c_omega,tspd);
+        broadcastPool.push("New evidence have been stored.");
     }
+    
+    function orAccess(string memory sa,string memory cisa,uint256 tssa,string memory rho_sa,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        require(
+            roles[msg.sender]==Role.sa,
+            "Illegal"
+        );
+        currentstate=CurrentState.Access;
+        broadcastPool.push("An access has been granted.");
+    }
+    
+    
+    function orVote(string memory v1d,string memory v2d,string memory v3d,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        require(
+            roles[msg.sender]==Role.jr,
+            "Illegal"
+        );
+        currentstate=CurrentState.Vote;
+        broadcastPool.push("A vote has been submitted.");
+    }
+    
+    function orComplete(string memory vfinal,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        require(
+            roles[msg.sender]==Role.jg,
+            "Illegal"
+        );
+        currentstate=CurrentState.Complete;
+        broadcastPool.push("A trial result has been achieved.");
+    }
+    
+    
+    function byte32UintToString(bytes32 b,uint256 num)private returns (string memory) {
+       
+       bytes memory nb = new bytes(32);
+       assembly { mstore(add(nb, 32), num) }
+       
+       bytes memory names = new bytes(b.length+nb.length);
+       
+       for(uint i = 0; i < b.length; i++) {
+           
+           names[i] = b[i];
+       }
+       for(uint j=0;j<nb.length;j++){
+           names[j+b.length]=nb[j];
+       }
+       return string(names);
+   }
 }
