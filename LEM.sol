@@ -1,14 +1,16 @@
 pragma solidity >=0.4.22 <0.7.0;
+pragma experimental ABIEncoderV2;
 
 contract LEM{
-    enum Role{
-        pi,//police investigator
-        node,//blockchain node 
-        pd,//police department
-        sa,//crime scene analyst
-        jr,//juror
-        jg//juror
+    
+    struct Character{
+        Role role;
+        string description;
     }
+    
+    mapping(address=>Character) public characters;
+    mapping(bytes32=>Investigation) public investigatioPool;
+    string[] public broadcastPool;
     
     struct Investigation{
         string des;//meatadata
@@ -16,183 +18,266 @@ contract LEM{
         uint256 timestamp;
         //dead time
         State state;
-        //state
-        Param param;
-        mapping(bytes32=>bytes32) kv;
+        //states
     }
-
     
-    struct CollectionRequest{
+    struct RegisteStruct{
+        string au;
+        string aci;
+        string date;
+        string ts;
+        bool processed;
+        bytes32 hash;
+    }
+    
+    struct UploadStruct{
+        string pii;
         string pi;
-        uint256 timestamp;
-        bytes32 data_hash;
-        string download_link;
+        string ci;
+        string md;
+        string hash1;
+        string hash2;
     }
     
-    address initializer;
-    mapping(address=>Role) public roles;
-    mapping(bytes32=>CollectionRequest) public CollectionRequestPool;
-    mapping(bytes32=>Investigation) public investigatioPool;
-    string[] public broadcastPool;
+    struct GrantStruct{
+        string au;
+        string aci;
+        string date;
+        string ts;
+    }
     
+    struct AccessStruct{
+        string  pij;
+        string  pi;
+        string  md;
+        string  pi2;
+        string  hash;
+    }
+    
+    struct PermitStruct{
+        bytes32 iindex;
+        string au;
+        string pij;
+        string date; 
+        string ts;
+    }
+    
+    struct AnalyzeStruct{
+        bytes32 iindex;
+        string au;
+        string pij;
+        string date;
+        string ts;
+    }
+    
+    
+    struct ReportStruct{
+        bytes32 iindex;
+        string pij;
+        string hash;
+        string date;
+        string ts;
+    }
+    
+    struct CloseStruct{
+        bytes32 iindex;
+        string pij;
+        string md;
+        string date;
+        string ts;
+    }
+    
+    RegisteStruct[] public rl;
+    UploadStruct[] public ul;
+    GrantStruct[] public gl;
+    AccessStruct[] public al;
+    PermitStruct[] public pl;
+    AnalyzeStruct[] public anl;
+    ReportStruct[] public rel;
+    CloseStruct[] public cl;
+    
+    enum State{
+            WarrantRequest,
+            InvestigationInitiate,
+            DataRequest,
+            DataRetrieval,
+            DataAnalysis,
+            ResultReport,
+            InvestigationClosure,
+            Completed
+    }
+    
+    enum Role{
+        l,//Law Enforcement
+        c,//Court 
+        v,//Vehicle
+        a//Authority
+    }
+    
+    
+    address public chairperson;
+    
+    function setCharacter(address a,Role role) public{
+        require(
+            msg.sender==chairperson,
+            "Operation not permitted"
+        );
+        characters[a].role=role;
+    }
+    
+    // function register(string memory au,string memory aci,string memory date, string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
+    //     require(
+    //         ecrecover(msgh, v, r, s)==msg.sender,
+    //         "Incorrect"
+    //     );
+    //     broadcastPool.push("register");
+    //     strings.slice memory s = aci.toSlice();
+    //     strings.slice memory delim = ".".toSlice();
+    //     string[] memory parts = new string[](s.count(delim) + 1);
+    //     for(uint i = 0; i < parts.length; i++) {
+    //         parts[i] = s.split(delim).toString();
+    //     }
         
-    enum CurrentState{
-        Collection,
-        Upload,
-        Reject_Upload,
-        Store,
-        Access,
-        Vote,
-        Complete
-    }
-    CurrentState currentstate;
+    //     bytes32 h=keccak256( abi.encode(au,parts[0],parts[1],parts[2],parts[3]));//just for testing
+    //     RegisteStruct memory rs=RegisteStruct(au,aci,date,ts,false,h);
+    // }//tx1
     
-    constructor() public{
-        initializer=msg.sender;
-    }
-    
-    function setChars(address[] memory pil,address[] memory nodel,address[] memory pdl,address[] memory sal,address[] memory jrl,address[] memory jgl) public{
-        require(
-            msg.sender==initializer,
-            "Illegal"
-            );
-        for(uint pii = 0; pii <pil.length ; pii++) {
-            roles[pil[pii]]=Role.pi;
-        }
-        for(uint nodei = 0; nodei <nodel.length ; nodei++) {
-            roles[nodel[nodei]]=Role.node;
-        }
-        for(uint pdi = 0; pdi <pdl.length ; pdi++) {
-            roles[pdl[pdi]]=Role.pd;
-        }
-        for(uint sai = 0; sai <sal.length ; sai++) {
-            roles[sal[sai]]=Role.sa;
-       }
-       for(uint jri = 0; jri <jrl.length ; jri++) {
-            roles[jrl[jri]]=Role.jr;
-       }
-       for(uint jgi = 0; jgi <jgl.length ; jgi++) {
-            roles[jgl[jgi]]=Role.jg;
-       }
-    }
-    
-    
-    function orRequest(string memory pi,uint256 ts,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
+    function register(string memory au,string memory aci,string memory date, string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
-        require(
-            roles[msg.sender]==Role.pi,
-            "Illegal"
-        );
-        currentstate=CurrentState.Collection;
-        bytes32 hpi=keccak256(abi.encodePacked(pi,ts));
-        CollectionRequest memory cr=CollectionRequest(pi,ts,"","");
-        CollectionRequestPool[hpi]=cr;
-        broadcastPool.push("A collection request has been created.");
-    }
+        broadcastPool.push("register");
+        
+        RegisteStruct memory rs=RegisteStruct(au,aci,date,ts,false,msgh);
+        rl.push(rs);
+    }//tx1
     
-    function orUpload(string memory pi,string memory R_omega,bytes32 hash_c_omega,uint256 tspi,string memory rho,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
+    
+    
+    
+    
+    //On receiving tx1
+    
+    
+    
+    function or1() public{
+        
+    }
+    function grant(string memory au,string memory aci,string memory date, string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
         require(
             ecrecover(msgh, v, r, s)==msg.sender,
             "Incorrect"
         );
+        broadcastPool.push("grant");
+        GrantStruct memory gs=GrantStruct(au,aci,date,ts);
+        gl.push(gs);
+    }//tx2
+    
+    //On receiving tx2
+    function or2() public{
+        
+    }
+    function upload(string memory pii,string memory pi,string memory ci,string memory md,string memory hash1,string memory hash2,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
         require(
-            roles[msg.sender]==Role.pi,
-            "Illegal"
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
         );
-        currentstate=CurrentState.Upload;
-        bytes32 hpi=keccak256(abi.encodePacked(pi,tspi));
-        CollectionRequest memory cr=CollectionRequest(pi,tspi,hash_c_omega,"");
-        CollectionRequestPool[hpi]=cr;
-        broadcastPool.push("New evidence have been collected by a police investigator.");
+        broadcastPool.push("upload");
+        bytes32 h=keccak256( abi.encode(pii,pi,ci,md));
+        UploadStruct memory us=UploadStruct(pii,pi,ci,md,hash1,hash2);
+        ul.push(us);
+    }//tx3
+    
+    //On receiving tx3
+    function or3() public{
+        
+    }
+    function access(string memory pij,string memory pi,string memory md,string memory pi2,string memory hash,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public returns(uint256){
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        broadcastPool.push("access");
+        Investigation memory i=Investigation("test",msg.sender,block.timestamp,State.WarrantRequest);
+        investigatioPool[msgh]=i;
+        AccessStruct memory aas=AccessStruct(pij,pi,md,pi2,hash);
+        al.push(aas);
+        emit access_e(msgh);
+    }//tx4
+    
+    //On receiving tx4
+    function or4() public{
+        
+    }
+    function permit(bytes32 iindex,string memory au, string memory pij,string memory date , string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        broadcastPool.push("permit");
+        Investigation memory i=investigatioPool[iindex];
+        i.state=State.DataRequest;
+        investigatioPool[iindex]=i;
+        PermitStruct memory ps=PermitStruct(iindex,au,pij,date,ts);
+        pl.push(ps);
+    }//tx5
+    
+    //On receiving tx5
+    function or5() public{
+        
+    }
+    function analyze(bytes32 iindex,string memory au, string memory pij,string memory date , string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        broadcastPool.push("analyze");
+        Investigation memory i=investigatioPool[iindex];
+        i.state=State.DataAnalysis;
+        investigatioPool[iindex]=i;
+        AnalyzeStruct memory azs=AnalyzeStruct(iindex,au,pij,date,ts);
+        anl.push(azs);
+    }//tx6
+    
+    //On receiving tx6
+    function or6() public{
+        
+    }
+    function report(bytes32 iindex,string memory pij,string memory hash,string memory date,string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        broadcastPool.push("report");
+        Investigation memory i=investigatioPool[iindex];
+        i.state=State.ResultReport;
+        investigatioPool[iindex]=i;
+        ReportStruct memory rs=ReportStruct(iindex,pij,hash,date,ts);
+        rel.push(rs);
+    }//tx7
+    
+    //On receiving tx7
+    function or7() public{
+        
+    }
+    function close(bytes32 iindex,string memory pij,string memory md,string memory date,string memory ts,bytes32 msgh, uint8 v, bytes32 r, bytes32 s) public{
+        require(
+            ecrecover(msgh, v, r, s)==msg.sender,
+            "Incorrect"
+        );
+        broadcastPool.push("close");
+        Investigation memory i=investigatioPool[iindex];
+        i.state=State.InvestigationClosure;
+        investigatioPool[iindex]=i;
+        CloseStruct memory cs=CloseStruct(iindex,pij,md,date,ts);
+        cl.push(cs);
+    }//tx8
+    //On receiving tx8
+    
+    function or8() public{
         
     }
     
-    function orRejectUpload(bytes32 hash_index,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{//called by the node
-        require(
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        require(
-            roles[msg.sender]==Role.node,
-            "Illegal"
-        );
-        currentstate=CurrentState.Reject_Upload;
-        delete CollectionRequestPool[hash_index];
-        broadcastPool.push("The upload has been rejected by a blockchain node.");
-    }
-    
-    function orStore(bytes32 hash_index,bytes32 hash_c_omega,uint256 tspd,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
-        require(
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        require(
-            roles[msg.sender]==Role.pd,
-            "Illegal"
-        );
-        currentstate=CurrentState.Store;
-        CollectionRequestPool[hash_index].download_link=byte32UintToString(hash_c_omega,tspd);
-        broadcastPool.push("New evidence have been stored.");
-    }
-    
-    function orAccess(string memory sa,string memory cisa,uint256 tssa,string memory rho_sa,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
-        require(
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        require(
-            roles[msg.sender]==Role.sa,
-            "Illegal"
-        );
-        currentstate=CurrentState.Access;
-        broadcastPool.push("An access has been granted.");
-    }
-    
-    
-    function orVote(string memory v1d,string memory v2d,string memory v3d,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
-        require(
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        require(
-            roles[msg.sender]==Role.jr,
-            "Illegal"
-        );
-        currentstate=CurrentState.Vote;
-        broadcastPool.push("A vote has been submitted.");
-    }
-    
-    function orComplete(string memory vfinal,bytes32 sig,bytes32 msgh,uint8 v,bytes32 r,bytes32 s) public{
-        require(
-            ecrecover(msgh, v, r, s)==msg.sender,
-            "Incorrect"
-        );
-        require(
-            roles[msg.sender]==Role.jg,
-            "Illegal"
-        );
-        currentstate=CurrentState.Complete;
-        broadcastPool.push("A trial result has been achieved.");
-    }
-    
-    
-    function byte32UintToString(bytes32 b,uint256 num)private returns (string memory) {
-       
-       bytes memory nb = new bytes(32);
-       assembly { mstore(add(nb, 32), num) }
-       
-       bytes memory names = new bytes(b.length+nb.length);
-       
-       for(uint i = 0; i < b.length; i++) {
-           
-           names[i] = b[i];
-       }
-       for(uint j=0;j<nb.length;j++){
-           names[j+b.length]=nb[j];
-       }
-       return string(names);
-   }
+    event access_e(bytes32 msgh);
 }
